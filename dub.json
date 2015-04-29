@@ -10,11 +10,10 @@
     "configurations": [
         {
             "name": "library"
-        },
-        {
-            "name": "travis",
-            "libs": ["sqlite3", "dl", "pthread"],
-            "lflags": ["-Llib"]
         }
-    ]
+    ],
+	"dflags-windows-x86": ["-m32mscoff"],
+	"sourceFiles-windows-x86_64": ["lib/sqlite3_x64.lib"],
+	"sourceFiles-windows-x86": ["lib/sqlite3_x86.lib"],
+    "libs-posix": ["sqlite3", "dl", "pthread"]
 }

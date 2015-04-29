@@ -6,9 +6,6 @@
  +/
 module dsqlar;
 
-version (Windows)
-    pragma(msg, "\nWARNING !!!\nDevelopped for POSIX systems only.\nNot tested on Windows.\n");
-
 import d2sqlite3;
 import sizefmt;
 import std.array;
@@ -22,7 +19,7 @@ import std.c.stdlib : exit;
 import core.stdc.time : time_t;
 import etc.c.zlib;
 
-enum Config config = { spacing: Spacing.tabular };
+enum Config config = { spacing: "\t" };
 alias Size = SizeBase!config;
 
 enum sqlCreateSchema =
