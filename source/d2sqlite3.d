@@ -215,8 +215,8 @@ public:
     {
         sqlite3* hdl;
         auto result = sqlite3_open_v2(path.toStringz, &hdl, flags, null);
-        enforce(result == SQLITE_OK, new SqliteException(p.handle
-                ? errmsg(p.handle) : "Error opening the database", result));
+		enforce(result == SQLITE_OK, new SqliteException((p.refCountedStore.isInitialized && p.handle)
+                ? errmsg(p.handle) : "Error opening the database: " ~ path  ~ " error: " ~ result.to!string, result));
         p = Payload(hdl);
     }
 
@@ -1080,66 +1080,73 @@ public:
         types: it must be a boolean or numeric type, a string, an array, null,
         or a Nullable!T where T is any of the previous types.
     +/
-    void bind(T)(int index, T value)
+    auto bind(T)(int index, T value)
         if (is(T == typeof(null)) || is(T == void*))
     {
         assert(p.handle, "Operation on an empty statement");
         checkResult(sqlite3_bind_null(p.handle, index));
+		return &this;
     }
 
     /// ditto
-    void bind(T)(int index, T value)
+    auto bind(T)(int index, T value)
         if (isIntegral!T || isSomeChar!T)
     {
         assert(p.handle, "Operation on an empty statement");
         checkResult(sqlite3_bind_int64(p.handle, index, cast(long) value));
+		return &this;
     }
 
     /// ditto
-    void bind(T)(int index, T value)
+    auto bind(T)(int index, T value)
         if (isBoolean!T)
     {
         assert(p.handle, "Operation on an empty statement");
         checkResult(sqlite3_bind_int(p.handle, index, to!T(value)));
+		return &this;
     }
 
     /// ditto
-    void bind(T)(int index, T value)
+    auto bind(T)(int index, T value)
         if (isFloatingPoint!T)
     {
         assert(p.handle, "Operation on an empty statement");
         checkResult(sqlite3_bind_double(p.handle, index, cast(double) value));
+		return &this;
     }
 
     /// ditto
-    void bind(T)(int index, T value)
+    auto bind(T)(int index, T value)
         if (isSomeString!T)
     {
         assert(p.handle, "Operation on an empty statement");
         string str = to!string(value);
         auto ptr = anchorMem(cast(void*) str.ptr);
         checkResult(sqlite3_bind_text64(p.handle, index, cast(const(char)*) ptr, str.length, &releaseMem, SQLITE_UTF8));
+		return &this;
     }
 
     /// ditto
-    void bind(T)(int index, T value)
+    auto bind(T)(int index, T value)
         if (isStaticArray!T)
     {
         assert(p.handle, "Operation on an empty statement");
         checkResult(sqlite3_bind_blob64(p.handle, index, cast(void*) value.ptr, value.sizeof, SQLITE_TRANSIENT));
+		return &this;
     }
 
     /// ditto
-    void bind(T)(int index, T value)
+    auto bind(T)(int index, T value)
         if (isDynamicArray!T && !isSomeString!T)
     {
         assert(p.handle, "Operation on an empty statement");
         auto arr = cast(void[]) value;
         checkResult(sqlite3_bind_blob64(p.handle, index, anchorMem(arr.ptr), arr.length, &releaseMem));
+		return &this;
     }
 
     /// ditto
-    void bind(T)(int index, T value)
+    auto bind(T)(int index, T value)
         if (is(T == Nullable!U, U...))
     {
         if (value.isNull)
@@ -1149,6 +1156,7 @@ public:
         }
         else
             bind(index, value.get);
+		return &this;
     }
 
     /++
@@ -1166,20 +1174,22 @@ public:
         retrieve the column index with a call to the SQLite function $(D
         sqlite3_bind_parameter_index).
     +/
-    void bind(T)(string name, T value)
+    auto bind(T)(string name, T value)
     {
         auto index = sqlite3_bind_parameter_index(p.handle, name.toStringz);
         enforce(index > 0, new SqliteException(format("no parameter named '%s'", name)));
         bind(index, value);
+		return &this;
     }
 
     /++
     Binds all the arguments at once in order.
     +/
-    void bindAll(Args...)(Args args)
+    auto bindAll(Args...)(Args args)
     {
         foreach (index, _; Args)
             bind(index + 1, args[index]);
+		return &this;
     }
 
     /++
